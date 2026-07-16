@@ -24,6 +24,7 @@
     <!-- Allows broadcasting for SlicePurchaseController events. -->
     <protected-broadcast android:name="com.android.phone.slice.action.START_SLICE_PURCHASE_APP" />
     <protected-broadcast android:name="com.android.phone.slice.action.SLICE_PURCHASE_APP_RESPONSE_TIMEOUT" />
+    <protected-broadcast android:name="org.codeaurora.intent.action.RADIO_POWER_STATE" />
     <protected-broadcast android:name="org.codeaurora.intent.action.ESSENTIAL_RECORDS_LOADED" />
 
     <original-package android:name="com.android.phone" />
