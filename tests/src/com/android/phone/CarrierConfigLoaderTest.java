@@ -192,6 +192,28 @@ public class CarrierConfigLoaderTest extends TelephonyTestBase {
                         IccCardConstants.INTENT_VALUE_ICC_ABSENT));
     }
 
+    @Test
+    public void testBroadcastEssentialRecordsLoadedIntent() {
+        doNothing().when(mContext).sendBroadcastAsUser(
+                any(Intent.class), any(UserHandle.class), anyString());
+
+        mCarrierConfigLoader.broadcastEssentialRecordsLoadedIntent(DEFAULT_PHONE_ID);
+
+        ArgumentCaptor<Intent> intentCaptor = ArgumentCaptor.forClass(Intent.class);
+        verify(mContext).sendBroadcastAsUser(
+                intentCaptor.capture(),
+                eq(UserHandle.ALL),
+                eq("com.qti.permission.RECEIVE_ESSENTIAL_RECORDS_LOADED"));
+        Intent intent = intentCaptor.getValue();
+        assertThat(intent.getAction())
+                .isEqualTo("org.codeaurora.intent.action.ESSENTIAL_RECORDS_LOADED");
+        assertThat(intent.getIntExtra(CarrierConfigManager.EXTRA_SLOT_INDEX, -1))
+                .isEqualTo(DEFAULT_PHONE_ID);
+        assertThat(intent.getFlags() & Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT)
+                .isNotEqualTo(0);
+        assertThat(intent.getFlags() & Intent.FLAG_RECEIVER_FOREGROUND).isNotEqualTo(0);
+    }
+
     /**
      * Verifies that when call #updateConfigForPhoneId() with SIM absence, both carrier config from
      * default app and carrier should be cleared but no-sim config should be loaded.

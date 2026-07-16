@@ -24,8 +24,16 @@
     <!-- Allows broadcasting for SlicePurchaseController events. -->
     <protected-broadcast android:name="com.android.phone.slice.action.START_SLICE_PURCHASE_APP" />
     <protected-broadcast android:name="com.android.phone.slice.action.SLICE_PURCHASE_APP_RESPONSE_TIMEOUT" />
+    <protected-broadcast android:name="org.codeaurora.intent.action.ESSENTIAL_RECORDS_LOADED" />
 
     <original-package android:name="com.android.phone" />
+    <!-- Qualcomm's power-up service waits for this protected signal before it marks the
+         Android telephony layer ready in the modem. -->
+    <permission
+        android:name="com.qti.permission.RECEIVE_ESSENTIAL_RECORDS_LOADED"
+        android:label="Broadcast essential records loaded"
+        android:protectionLevel="signature|privileged" />
+    <uses-permission android:name="com.qti.permission.RECEIVE_ESSENTIAL_RECORDS_LOADED" />
     <!-- Allows granting runtime permissions to telephony related components. -->
     <uses-permission android:name="android.permission.GRANT_RUNTIME_PERMISSIONS_TO_TELEPHONY_DEFAULTS" />
 

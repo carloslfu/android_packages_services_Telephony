@@ -106,6 +106,10 @@ import java.util.stream.Stream;
  */
 public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
     private static final String LOG_TAG = "CarrierConfigLoader";
+    private static final String ACTION_ESSENTIAL_RECORDS_LOADED =
+            "org.codeaurora.intent.action.ESSENTIAL_RECORDS_LOADED";
+    private static final String PERMISSION_RECEIVE_ESSENTIAL_RECORDS_LOADED =
+            "com.qti.permission.RECEIVE_ESSENTIAL_RECORDS_LOADED";
 
     private static final SimpleDateFormat TIME_FORMAT =
             new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
@@ -845,6 +849,31 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
 
     private void broadcastConfigChangedIntent(int phoneId) {
         broadcastConfigChangedIntent(phoneId, true);
+        if (getSimApplicationStateForPhone(phoneId) == TelephonyManager.SIM_STATE_LOADED) {
+            broadcastEssentialRecordsLoadedIntent(phoneId);
+        }
+    }
+
+    /**
+     * Tells Nothing's Qualcomm telephony service that Android has loaded both the SIM records and
+     * carrier config. The service turns this into the QCRIL ATEL-ready request which enables SMS
+     * delivery from the modem.
+     */
+    @VisibleForTesting
+    /* package */ void broadcastEssentialRecordsLoadedIntent(int phoneId) {
+        Intent intent = new Intent(ACTION_ESSENTIAL_RECORDS_LOADED);
+        intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT
+                | Intent.FLAG_RECEIVER_FOREGROUND);
+        SubscriptionManager.putPhoneIdAndSubIdExtra(intent, phoneId);
+        intent.putExtra(TelephonyManager.EXTRA_SPECIFIC_CARRIER_ID,
+                getSpecificCarrierIdForPhoneId(phoneId));
+        intent.putExtra(TelephonyManager.EXTRA_CARRIER_ID, getCarrierIdForPhoneId(phoneId));
+        intent.putExtra(CarrierConfigManager.EXTRA_SLOT_INDEX, phoneId);
+        intent.putExtra(CarrierConfigManager.EXTRA_REBROADCAST_ON_UNLOCK,
+                mFromSystemUnlocked[phoneId]);
+        mContext.sendBroadcastAsUser(intent, UserHandle.ALL,
+                PERMISSION_RECEIVE_ESSENTIAL_RECORDS_LOADED);
+        logl("Broadcast ESSENTIAL_RECORDS_LOADED for phone " + phoneId);
     }
 
     private void broadcastConfigChangedIntent(int phoneId, boolean addSubIdExtra) {
