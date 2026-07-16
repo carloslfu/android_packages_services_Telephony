@@ -193,6 +193,32 @@ public class CarrierConfigLoaderTest extends TelephonyTestBase {
     }
 
     @Test
+    public void testBroadcastRadioPowerStateChangedIntent() {
+        doNothing().when(mContext).sendBroadcastAsUser(
+                any(Intent.class), any(UserHandle.class), anyString());
+        doReturn(DEFAULT_SUB_ID).when(mPhone).getSubId();
+        doReturn(TelephonyManager.RADIO_POWER_ON).when(mPhone).getRadioPowerState();
+
+        mCarrierConfigLoader.broadcastRadioPowerStateChangedIntent(DEFAULT_PHONE_ID);
+
+        ArgumentCaptor<Intent> intentCaptor = ArgumentCaptor.forClass(Intent.class);
+        verify(mContext).sendBroadcastAsUser(
+                intentCaptor.capture(),
+                eq(UserHandle.ALL),
+                eq(android.Manifest.permission.READ_PRIVILEGED_PHONE_STATE));
+        Intent intent = intentCaptor.getValue();
+        assertThat(intent.getAction())
+                .isEqualTo("org.codeaurora.intent.action.RADIO_POWER_STATE");
+        assertThat(intent.getIntExtra(SubscriptionManager.EXTRA_SLOT_INDEX, -1))
+                .isEqualTo(DEFAULT_PHONE_ID);
+        assertThat(intent.getIntExtra(SubscriptionManager.EXTRA_SUBSCRIPTION_INDEX, -1))
+                .isEqualTo(DEFAULT_SUB_ID);
+        assertThat(intent.getIntExtra("state", TelephonyManager.RADIO_POWER_UNAVAILABLE))
+                .isEqualTo(TelephonyManager.RADIO_POWER_ON);
+        assertThat(intent.getFlags() & Intent.FLAG_RECEIVER_INCLUDE_BACKGROUND).isNotEqualTo(0);
+    }
+
+    @Test
     public void testBroadcastEssentialRecordsLoadedIntent() {
         doNothing().when(mContext).sendBroadcastAsUser(
                 any(Intent.class), any(UserHandle.class), anyString());

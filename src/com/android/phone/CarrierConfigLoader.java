@@ -106,10 +106,15 @@ import java.util.stream.Stream;
  */
 public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
     private static final String LOG_TAG = "CarrierConfigLoader";
+    private static final String ACTION_RADIO_POWER_STATE =
+            "org.codeaurora.intent.action.RADIO_POWER_STATE";
     private static final String ACTION_ESSENTIAL_RECORDS_LOADED =
             "org.codeaurora.intent.action.ESSENTIAL_RECORDS_LOADED";
     private static final String PERMISSION_RECEIVE_ESSENTIAL_RECORDS_LOADED =
             "com.qti.permission.RECEIVE_ESSENTIAL_RECORDS_LOADED";
+    private static final String EXTRA_RADIO_POWER_STATE = "state";
+    private static final String EXTRA_SLOT_INDEX = "slot";
+    private static final String EXTRA_SUBSCRIPTION_INDEX = "subscription";
 
     private static final SimpleDateFormat TIME_FORMAT =
             new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
@@ -850,8 +855,36 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
     private void broadcastConfigChangedIntent(int phoneId) {
         broadcastConfigChangedIntent(phoneId, true);
         if (getSimApplicationStateForPhone(phoneId) == TelephonyManager.SIM_STATE_LOADED) {
+            broadcastRadioPowerStateChangedIntent(phoneId);
             broadcastEssentialRecordsLoadedIntent(phoneId);
         }
+    }
+
+    /**
+     * Replays the current radio state after the QTI phone process has had time to register its
+     * receiver. The framework sends every live change; this late snapshot closes the cold-boot
+     * registration race before the essential-records signal.
+     */
+    @VisibleForTesting
+    /* package */ void broadcastRadioPowerStateChangedIntent(int phoneId) {
+        Phone phone = PhoneFactory.getPhone(phoneId);
+        if (phone == null) {
+            loge("Cannot broadcast RADIO_POWER_STATE: no phone for " + phoneId);
+            return;
+        }
+
+        int subId = phone.getSubId();
+        int state = phone.getRadioPowerState();
+        Intent intent = new Intent(ACTION_RADIO_POWER_STATE);
+        intent.addFlags(Intent.FLAG_RECEIVER_INCLUDE_BACKGROUND);
+        intent.putExtra(EXTRA_SUBSCRIPTION_INDEX, subId);
+        intent.putExtra(SubscriptionManager.EXTRA_SUBSCRIPTION_INDEX, subId);
+        intent.putExtra(EXTRA_SLOT_INDEX, phoneId);
+        intent.putExtra(SubscriptionManager.EXTRA_SLOT_INDEX, phoneId);
+        intent.putExtra(EXTRA_RADIO_POWER_STATE, state);
+        mContext.sendBroadcastAsUser(intent, UserHandle.ALL,
+                android.Manifest.permission.READ_PRIVILEGED_PHONE_STATE);
+        logl("Broadcast RADIO_POWER_STATE=" + state + " for phone " + phoneId);
     }
 
     /**
